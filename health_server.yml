@@ -1,0 +1,12 @@
+# MySQL 数据库连接：按实际服务器填写。
+mysql:
+  address: "127.0.0.1:3306" # 数据库 IP 和端口
+  user: "agv_health"       # 数据库用户名
+  password: ""            # 数据库密码
+  dbname: "agv_health"     # 保存业务数据的数据库名
+
+# FTP 接收目录与车辆的对应关系；多辆车可以继续添加。
+# directory 是服务器上的本地目录，不是 FTP 地址；相对路径以本配置文件所在目录为基准。
+inputs:
+  - directory: "data/incoming/robot_001"
+    robot_id: 1 # 该目录对应的真实车辆 ID
