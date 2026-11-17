@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"health-bag-server/internal/analysis"
-	"health-bag-server/internal/config"
-	"health-bag-server/internal/model"
+	"health-bag-server/config"
+	"health-bag-server/model"
+	"health-bag-server/service/analysis"
 	"server01.jz/cloudia-module/mcs"
 )
 

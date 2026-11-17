@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"health-bag-server/internal/config"
+	"health-bag-server/config"
 )
 
 type Handler interface {

@@ -8,8 +8,8 @@ import (
 	"sort"
 
 	"gonum.org/v1/gonum/dsp/fourier"
-	"health-bag-server/internal/config"
-	"health-bag-server/internal/model"
+	"health-bag-server/config"
+	"health-bag-server/model"
 )
 
 type oscillationWindow struct{ start, end, frequency, amplitude float64 }

@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/foxglove/go-rosbag/ros1msg"
-	"health-bag-server/internal/model"
+	"health-bag-server/model"
 )
 
 // Decode against the embedded ROS schema. Bounds are checked before allocating

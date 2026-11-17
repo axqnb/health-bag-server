@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"health-bag-server/internal/model"
+	"health-bag-server/model"
 )
 
 var ErrConflict = errors.New("同一任务已存在但业务数据不一致，保留原始bag等待核对")

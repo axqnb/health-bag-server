@@ -13,7 +13,7 @@ import (
 
 	rosbag "github.com/foxglove/go-rosbag"
 	"github.com/foxglove/go-rosbag/ros1msg"
-	"health-bag-server/internal/model"
+	"health-bag-server/model"
 )
 
 type Reader struct {

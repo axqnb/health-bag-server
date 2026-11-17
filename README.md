@@ -24,14 +24,15 @@ FTP 直接使用最终 `.bag` 文件名上传也可以；文件稳定检测只�
 完整目录树、文件职责、处理链路与后续修改入口见 [项目目录与架构说明](docs/architecture.md)。
 
 ```text
-main.go                       程序入口、MCS 初始化、命令行
+main.go                       启动顺序：配置、日志、MySQL、迁移、导入服务
+command/                      命令行参数、配置检查与 bag 检查
 health_server.yml              配置示例
-internal/config/              配置和校验
-internal/bag/                 ROS1 容器校验、嵌套消息解码
-internal/model/               消息数据、六类业务模型
-internal/analysis/            控制误差、FFT、速度跟踪、伺服误差
-internal/database/            GORM 迁移和事务入库
-internal/ingest/              稳定检测、worker、临时快照、提交后删除
+config/              配置和校验
+service/bag/                 ROS1 容器校验、嵌套消息解码
+model/               消息数据、六类业务模型
+service/analysis/            控制误差、FFT、速度跟踪、伺服误差
+server/database/            GORM 迁移和事务入库
+service/ingest/              稳定检测、worker、临时快照、提交后删除
 ```
 
 ## 构建与快速检查
@@ -63,7 +64,7 @@ go build -o bin/health-bag-server.exe .
 
 接收目录的相对路径以配置文件所在目录为基准。地图和载荷没有可靠来源时按未知保存，不需要填写；如果确认某个接收项对应的固定值，可以在该项下按需添加 `map_name`、`is_loading`。
 
-原来展示在 YAML 中的运行和分析参数已收回到 `internal/config/config.go` 的默认值：每 5 秒扫描一次，文件连续稳定 60 秒后解析，失败后间隔 60 秒重试，默认串行处理任务，启动时自动初始化业务表。临时副本默认放在配置文件同级的 `data/work` 下，正常处理结束后自动清理；接收目录不能包含该临时目录。
+原来展示在 YAML 中的运行和分析参数已收回到 `config/config.go` 的默认值：每 5 秒扫描一次，文件连续稳定 60 秒后解析，失败后间隔 60 秒重试，默认串行处理任务，启动时自动初始化业务表。临时副本默认放在配置文件同级的 `data/work` 下，正常处理结束后自动清理；接收目录不能包含该临时目录。
 
 数据库连接池、文件与消息数量限制，以及文档明确的 2 cm / 2° 控制误差阈值也使用内置默认值，无需日常配置。旧配置仍可读取，但默认 YAML 不再列出这些内部参数。
 
@@ -98,7 +99,7 @@ Linux 下直接运行可执行程序，建议配置绝对的接收和临时目�
 - `health_actuator_tracking`：每任务、每配置通道的指令/反馈/误差统计及响应时间。
 - `health_servo_result`：Action 结果状态、goal_id、tag_id、vs_type、耗时、原始位姿/JSON，以及可选的对接误差。
 
-模型和实际列定义见 `internal/model/tables.go`。`start_timestamp`、`end_timestamp` 使用 `DECIMAL(20,9)`，bag 消息时间使用纳秒整数。程序不能提高源头 `float64` 时间戳本身的精度。
+模型和实际列定义见 `model/tables.go`。`start_timestamp`、`end_timestamp` 使用 `DECIMAL(20,9)`，bag 消息时间使用纳秒整数。程序不能提高源头 `float64` 时间戳本身的精度。
 
 任务唯一键由车辆 ID、起终点、起止时间构成。相同任务、相同业务数据重试不会重复插入指标；同任务不同数据报冲突并保留 bag，不静默覆盖。指标配置、车辆上下文或计算版本变化也可能产生冲突，应明确处理已有业务数据后再重新计算。
 
@@ -178,3 +179,5 @@ analysis:
 先通过 `-check-bag` 检查真实车端数据，再配置 MySQL 与 FTP 接收目录启动常驻服务。核对六类业务表的内容，并确认解析或入库失败时源 bag 保留、事务提交成功后源 bag 删除。
 
 入库成功后源 bag 按要求删除，因此原始高频采样不会再作为独立文件留存。数据库统计不能恢复全部原始时序，也不能在日后无损重算任意新指标。
+
+

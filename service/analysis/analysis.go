@@ -7,8 +7,8 @@ import (
 	"math"
 	"sort"
 
-	"health-bag-server/internal/config"
-	"health-bag-server/internal/model"
+	"health-bag-server/config"
+	"health-bag-server/model"
 )
 
 func Stats(values []float64) model.Stats {
