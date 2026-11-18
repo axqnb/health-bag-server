@@ -90,14 +90,18 @@ func (r Reader) Read(ctx context.Context, path string) (data *model.Data, err er
 		if err != nil {
 			return nil, err
 		}
-		if conn == nil || message == nil || message.Time > math.MaxInt64 {
-			return nil, fmt.Errorf("bag话题连接或消息时间无效")
+		if conn == nil || message == nil {
+			return nil, fmt.Errorf("bag话题连接或消息无效")
 		}
+		// 容器计数包含所有消息，业务质量统计只包含支持的话题。
 		actualCounts[message.Conn]++
-		data.TopicCounts[conn.Topic]++
 		if !knownTopic(conn.Topic) {
-			return nil, fmt.Errorf("暂不支持话题 %q，已保留源文件，避免丢失该话题的数据", conn.Topic)
+			continue
 		}
+		if message.Time > math.MaxInt64 {
+			return nil, fmt.Errorf("bag消息时间无效")
+		}
+		data.TopicCounts[conn.Topic]++
 		fields := schemas[conn.Conn]
 		if fields == nil {
 			pkg, _, ok := strings.Cut(conn.Data.Type, "/")

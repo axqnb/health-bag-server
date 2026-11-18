@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"health-bag-server/command"
 	"health-bag-server/config"
 	"health-bag-server/server/database"
 	"health-bag-server/service/ingest"
@@ -32,23 +31,22 @@ func run() (err error) {
 	}()
 	time.Local = time.UTC
 
-	// 加载配置；检查命令独立执行，不初始化数据库。
-	opts, err := command.Parse(os.Args[1:], os.Stderr)
-	if errors.Is(err, flag.ErrHelp) {
+	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	configPath := flags.String("config", "health_server.yml", "配置文件路径")
+	flags.Usage = func() {
+		fmt.Fprintf(flags.Output(), "用法：%s [-config 配置文件路径]\n", flags.Name())
+		flags.PrintDefaults()
+	}
+	if err := flags.Parse(os.Args[1:]); errors.Is(err, flag.ErrHelp) {
 		return nil
-	}
-	if err != nil {
+	} else if err != nil {
 		return err
 	}
-	cfg, err := config.Load(opts.ConfigPath)
+
+	// 加载并校验配置。
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return err
-	}
-	if opts.CheckConfig {
-		return command.CheckConfig(cfg, os.Stdout)
-	}
-	if opts.CheckBag != "" {
-		return command.CheckBag(cfg, opts, os.Stdout)
 	}
 	if err := cfg.ValidateMysql(); err != nil {
 		return err
@@ -64,14 +62,10 @@ func run() (err error) {
 
 	// 初始化业务表。
 	repository := &database.Repository{DB: mcs.DB}
-	if cfg.AutoMigrate || opts.MigrateOnly {
+	if cfg.AutoMigrate {
 		if err := repository.Migrate(ctx); err != nil {
 			return fmt.Errorf("初始化业务数据表失败：%w", err)
 		}
-	}
-	if opts.MigrateOnly {
-		mcs.Log.Infof("数据库业务表初始化完成")
-		return nil
 	}
 
 	// 启动导入服务，收到退出信号后等待 worker 退出。

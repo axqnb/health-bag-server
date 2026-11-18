@@ -21,11 +21,10 @@ FTP 直接使用最终 `.bag` 文件名上传也可以；文件稳定检测只�
 
 ## 项目结构
 
-完整目录树、文件职责、处理链路与后续修改入口见 [项目目录与架构说明](docs/architecture.md)。
+完整目录树、文件职责、处理链路与后续修改入口见 [项目目录与架构说明](docs/项目目录与架构.md)。
 
 ```text
 main.go                       启动顺序：配置、日志、MySQL、迁移、导入服务
-command/                      命令行参数、配置检查与 bag 检查
 health_server.yml              配置示例
 config/              配置和校验
 service/bag/                 ROS1 容器校验、嵌套消息解码
@@ -35,25 +34,14 @@ server/database/            GORM 迁移和事务入库
 service/ingest/              稳定检测、worker、临时快照、提交后删除
 ```
 
-## 构建与快速检查
+## 构建
 
 源码构建需要能获取公司私有 Go 模块，或者已经准备好模块缓存。MCS 使用与参考项目相同的 `v0.0.45`；依赖版本由 `go.mod`、`go.sum` 锁定。
 
 ```powershell
 cd D:\GoLanguage\health-bag-server
 go build -o bin/health-bag-server.exe .
-.\bin\health-bag-server.exe -config health_server.yml -check-config
 ```
-
-检查一个已经存在的真实任务 bag，将下面路径替换成实际文件路径：
-
-```powershell
-.\bin\health-bag-server.exe -config health_server.yml -check-bag D:\bags\task.bag -robot-id 1
-```
-
-`-check-bag` 只解析并打印业务结果 JSON，**不连接 MySQL、不删除 bag**。`-robot-id` 对应配置中已有的输入项；只有一个输入项时可省略。`-check-config` 只检查配置，不连接数据库。
-
-可以先核对实际任务、消息解析及统计结果，再进行真实 MySQL 环境联调。
 
 ## MySQL 与启动
 
@@ -72,17 +60,13 @@ go build -o bin/health-bag-server.exe .
 
 日志使用 `mcs.InitLog("health-bag-server")` 和 `mcs.Log`，沿用 MCS 自身的日志配置规则：读取可执行文件目录的 `logging.json`，未提供时使用默认输出。程序不额外配置日志文件路径。
 
-初始化表后退出：
+配置好 MySQL 和接收目录后，从项目根目录启动服务：
 
 ```powershell
-.\bin\health-bag-server.exe -config health_server.yml -migrate-only
+.\bin\health-bag-server.exe
 ```
 
-常驻运行：
-
-```powershell
-.\bin\health-bag-server.exe -config health_server.yml
-```
+默认读取当前目录的 `health_server.yml`。可用 `-config` 指定其他文件。默认启动时自动建表，设置 `auto_migrate: false` 可跳过业务表迁移。
 
 正式联调时，将一个测试任务 bag 放入对应接收目录，等待文件稳定及扫描周期。确认日志依次出现“任务数据入库成功”和“入库后删除bag成功”，并检查 MySQL 中对应业务行。数据库故障时应出现“数据库事务提交失败”，原文件保持存在。
 
@@ -119,7 +103,9 @@ Linux 下直接运行可执行程序，建议配置绝对的接收和临时目�
 
 前三个话题先按 bag 自带 ROS 定义解码 `jzstd_msgs/DataCollection`，再解码 `data` JSON。其余按 bag 自带的嵌套定义解析。支持无压缩、LZ4、BZ2 的读取路径。单条容器记录及解压后 chunk 上限为 64 MiB，单个消息数组最多 100 万个元素；超过限制会保留源文件并报错。
 
-一个 bag 必须包含一个有效任务摘要；相同摘要的重复消息可以去重，多个不同任务摘要、摘要缺失、未知话题、字段缺失或消息版本不支持都会拒绝入库。不使用文件名猜测任务信息。任务结束摘要的入包时间允许晚于 `end_timestamp`；过程样本按 bag 记录时间检查必须位于任务范围内。
+只解码和统计支持的话题。未知话题会跳过，仍计入 bag 容器的消息完整性校验。未知话题的内容和数量不影响业务摘要。
+
+一个 bag 必须包含一个有效任务摘要。相同摘要的重复消息可以去重。多个不同任务摘要、摘要缺失、已支持话题的必填字段缺失或消息版本不支持都会拒绝入库。不使用文件名猜测任务信息。任务结束摘要的入包时间允许晚于 `end_timestamp`，过程样本的 bag 记录时间必须位于任务范围内。
 
 ### 过程控制
 
@@ -176,7 +162,7 @@ analysis:
 
 ## 实际环境联调
 
-先通过 `-check-bag` 检查真实车端数据，再配置 MySQL 与 FTP 接收目录启动常驻服务。核对六类业务表的内容，并确认解析或入库失败时源 bag 保留、事务提交成功后源 bag 删除。
+配置测试 MySQL 与 FTP 接收目录，启动服务后将车端 bag 的副本放入对应接收目录。核对六类业务表的内容，并确认解析或入库失败时源 bag 保留、事务提交成功后源 bag 删除。
 
 入库成功后源 bag 按要求删除，因此原始高频采样不会再作为独立文件留存。数据库统计不能恢复全部原始时序，也不能在日后无损重算任意新指标。
 
