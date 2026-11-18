@@ -14,11 +14,6 @@ var ErrConflict = errors.New("同一任务已存在但业务数据不一致，�
 
 type Repository struct{ DB *gorm.DB }
 
-func (r *Repository) Migrate(ctx context.Context) error {
-	return r.DB.WithContext(ctx).Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").AutoMigrate(
-		&model.Task{}, &model.ReachPrecision{}, &model.ProcessControl{}, &model.Twisting{}, &model.ActuatorTracking{}, &model.ServoResult{})
-}
-
 // Save commits the whole task, including all metrics, or nothing. The task's
 // digest describes parsed business data, not a bag/file import history record.
 func (r *Repository) Save(ctx context.Context, bundle *model.Bundle) (inserted bool, err error) {

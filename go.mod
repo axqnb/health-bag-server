@@ -24,7 +24,7 @@ require (
 	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/driver/mysql v1.5.1 // indirect
+	gorm.io/driver/mysql v1.5.7 // indirect
 	server01.jz/cloudia-libs/bolt v0.0.1 // indirect
 	server01.jz/cloudia-libs/jredis v1.0.2 // indirect
 	server01.jz/cloudia-libs/logging v1.0.6 // indirect
